@@ -6,7 +6,13 @@ import { z } from 'zod'
 
 import type { StockRowInsert } from '#/db/schema'
 import { insertStockRowSchema } from '#/db/schema.zod'
-import { insertStockRowsStrict, listStockRows } from '#/server/stockRows'
+import {
+  deleteAllStockRows,
+  getStockSummary,
+  insertStockRowsStrict,
+  listStockRows,
+  searchProducts,
+} from '#/server/stockRows'
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20_000).optional(),
@@ -14,14 +20,19 @@ const listQuerySchema = z.object({
   storeCode: z.string().min(1).optional(),
   periodFrom: z.string().min(1).optional(),
   periodTo: z.string().min(1).optional(),
+  mode: z.enum(['rows', 'summary', 'search']).optional(),
+  query: z.string().optional(),
 })
 
 const insertBodySchema = z.object({
-  rows: z.array(z.record(z.unknown())).min(1).max(10_000),
+  rows: z.array(z.unknown()).min(1).max(10_000),
 })
 
-function parseStockRowInserts(rows: Record<string, unknown>[]): StockRowInsert[] {
+function parseStockRowInserts(rows: unknown[]): StockRowInsert[] {
   return rows.map((raw) => {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new Error('Each uploaded row must be an object.')
+    }
     const copy = { ...raw }
     if (copy.uploadedAt != null && copy.uploadedAt !== '') {
       copy.uploadedAt = new Date(String(copy.uploadedAt))
@@ -70,6 +81,37 @@ export const insertStockRowsFn = createServerFn({
     return { ok: true as const, rowsInserted: result.rowsInserted }
   })
 
+export const getStockSummaryFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const summary = await getStockSummary()
+  return { ok: true as const, ...summary }
+})
+
+export const searchProductsFn = createServerFn({
+  method: 'POST',
+})
+  .inputValidator(
+    (data: unknown) =>
+      z
+        .object({
+          query: z.string().optional(),
+          limit: z.number().int().min(1).max(200).optional(),
+        })
+        .parse(data ?? {}),
+  )
+  .handler(async ({ data }) => {
+    const result = await searchProducts(data)
+    return { ok: true as const, ...result }
+  })
+
+export const clearStockRowsFn = createServerFn({
+  method: 'POST',
+}).handler(async () => {
+  const deleted = await deleteAllStockRows()
+  return { ok: true as const, deleted }
+})
+
 export const Route = createFileRoute('/api/stock/rows')({
   component: () => null,
   server: {
@@ -82,12 +124,25 @@ export const Route = createFileRoute('/api/stock/rows')({
           storeCode: url.searchParams.get('storeCode') ?? undefined,
           periodFrom: url.searchParams.get('periodFrom') ?? undefined,
           periodTo: url.searchParams.get('periodTo') ?? undefined,
+          mode: url.searchParams.get('mode') ?? undefined,
+          query: url.searchParams.get('query') ?? undefined,
         })
         if (!parsed.success) {
           return json(
             { error: 'Invalid query parameters.', detail: parsed.error.flatten() },
             { status: 400 },
           )
+        }
+        if (parsed.data.mode === 'summary') {
+          const summary = await getStockSummary()
+          return json({ ok: true, ...summary })
+        }
+        if (parsed.data.mode === 'search') {
+          const result = await searchProducts({
+            query: parsed.data.query,
+            limit: parsed.data.limit,
+          })
+          return json({ ok: true, ...result })
         }
         const rows = await listStockRows(parsed.data)
         return json({ ok: true, rows, count: rows.length })
@@ -139,6 +194,11 @@ export const Route = createFileRoute('/api/stock/rows')({
           ok: true,
           rowsInserted: result.rowsInserted,
         })
+      },
+
+      DELETE: async () => {
+        const deleted = await deleteAllStockRows()
+        return json({ ok: true, deleted })
       },
     },
   },
