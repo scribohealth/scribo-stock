@@ -25,11 +25,14 @@ const listQuerySchema = z.object({
 })
 
 const insertBodySchema = z.object({
-  rows: z.array(z.record(z.unknown())).min(1).max(10_000),
+  rows: z.array(z.unknown()).min(1).max(10_000),
 })
 
-function parseStockRowInserts(rows: Record<string, unknown>[]): StockRowInsert[] {
+function parseStockRowInserts(rows: unknown[]): StockRowInsert[] {
   return rows.map((raw) => {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new Error('Each uploaded row must be an object.')
+    }
     const copy = { ...raw }
     if (copy.uploadedAt != null && copy.uploadedAt !== '') {
       copy.uploadedAt = new Date(String(copy.uploadedAt))
