@@ -1,29 +1,23 @@
-import {
-  doublePrecision,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uniqueIndex,
-  varchar,
-} from 'drizzle-orm/pg-core'
+import { integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
-export const todos = pgTable('todos', {
-  id: serial().primaryKey(),
-  title: text().notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
+export const todos = sqliteTable('todos', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 })
 
 export type Todo = typeof todos.$inferSelect
 export type TodoInsert = typeof todos.$inferInsert
 
-/** Stock snapshot rows aligned with CSV import / client `StockRow` shape. */
-export const stockRows = pgTable(
+/** Stock snapshot rows (D1 / SQLite), aligned with CSV import / client `StockRow` shape. */
+export const stockRows = sqliteTable(
   'stock_rows',
   {
-    id: serial('id').primaryKey(),
-    periodFrom: varchar('period_from', { length: 64 }).notNull(),
-    periodTo: varchar('period_to', { length: 64 }).notNull(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    periodFrom: text('period_from').notNull(),
+    periodTo: text('period_to').notNull(),
     storeCode: text('store_code').notNull(),
     storeName: text('store_name').notNull().default(''),
     groupCode: text('group_code').notNull().default(''),
@@ -39,8 +33,10 @@ export const stockRows = pgTable(
     barcode: text('barcode').notNull(),
     productName: text('product_name').notNull().default(''),
     productNameJa: text('product_name_ja').notNull().default(''),
-    stockQty: doublePrecision('stock_qty').notNull().default(0),
-    uploadedAt: timestamp('uploaded_at', { withTimezone: true }).defaultNow().notNull(),
+    stockQty: real('stock_qty').notNull().default(0),
+    uploadedAt: integer('uploaded_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
   },
   (t) => [
     uniqueIndex('stock_rows_period_store_barcode_uidx').on(
@@ -52,7 +48,7 @@ export const stockRows = pgTable(
   ],
 )
 
-/** Row as stored in Postgres (Drizzle-inferred). */
+/** Row as stored in D1 (Drizzle-inferred). */
 export type StockRowSelect = typeof stockRows.$inferSelect
 export type StockRowInsert = typeof stockRows.$inferInsert
 

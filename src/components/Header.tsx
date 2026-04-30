@@ -80,7 +80,7 @@ export default function Header() {
                 href="/demo/neon"
                 className="block rounded-lg px-3 py-2 text-sm text-[var(--sea-ink-soft)] no-underline transition hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
               >
-                Neon
+                D1 todos
               </a>
               <a
                 href="/demo/drizzle"

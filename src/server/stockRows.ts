@@ -1,6 +1,6 @@
 import { and, desc, eq, or } from 'drizzle-orm'
 
-import { db } from '#/db/index'
+import { getDb } from '#/db/index'
 import { stockRows, type StockRow, type StockRowInsert, type StockRowSelect } from '#/db/schema'
 
 export type StockRowsInsertResult =
@@ -20,6 +20,7 @@ export function naturalKey(row: {
 async function findExistingNaturalKeyInDb(
   rows: Pick<StockRowInsert, 'periodFrom' | 'periodTo' | 'storeCode' | 'barcode'>[],
 ): Promise<string | undefined> {
+  const db = getDb()
   const OR_CHUNK = 80
   for (let i = 0; i < rows.length; i += OR_CHUNK) {
     const batch = rows.slice(i, i + OR_CHUNK)
@@ -54,6 +55,7 @@ async function findExistingNaturalKeyInDb(
 
 async function insertChunks(values: StockRowInsert[]) {
   if (!values.length) return 0
+  const db = getDb()
   const CHUNK = 500
   let inserted = 0
   for (let i = 0; i < values.length; i += CHUNK) {
@@ -65,7 +67,7 @@ async function insertChunks(values: StockRowInsert[]) {
 }
 
 /**
- * Insert rows into Postgres. Rejects if the file payload repeats a natural key,
+ * Insert rows into D1. Rejects if the payload repeats a natural key,
  * or if any key already exists (no duplicate uploads vs DB).
  */
 export async function insertStockRowsStrict(
@@ -131,6 +133,7 @@ export type ListStockRowsParams = {
 const MAX_LIMIT = 20_000
 
 export async function listStockRows(params: ListStockRowsParams = {}): Promise<StockRowSelect[]> {
+  const db = getDb()
   const limit = Math.min(Math.max(Number(params.limit) || 5000, 1), MAX_LIMIT)
   const offset = Math.max(Number(params.offset) || 0, 0)
 
@@ -163,8 +166,8 @@ export async function listStockRows(params: ListStockRowsParams = {}): Promise<S
     .offset(offset)
 }
 
-/** Single row by DB id (if you need it). */
 export async function getStockRowById(id: number): Promise<StockRowSelect | undefined> {
+  const db = getDb()
   const rows = await db.select().from(stockRows).where(eq(stockRows.id, id)).limit(1)
   return rows[0]
 }
