@@ -169,13 +169,13 @@ function DemoDrizzle() {
               <li>
                 Regenerate SQL after schema edits:{' '}
                 <code className="px-2 py-1 rounded bg-black/30 text-purple-300">
-                  npm run db:generate
+                  bun run db:generate
                 </code>
               </li>
               <li>
                 Optional:{' '}
                 <code className="px-2 py-1 rounded bg-black/30 text-purple-300">
-                  npm run cf-typegen
+                  bun run cf-typegen
                 </code>{' '}
                 for binding types
               </li>
