@@ -1,12 +1,13 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { db } from '#/db/index'
+import { getDb } from '#/db/index'
 import { desc } from 'drizzle-orm'
 import { todos } from '#/db/schema'
 
 const getTodos = createServerFn({
   method: 'GET',
 }).handler(async () => {
+  const db = getDb()
   return await db.query.todos.findMany({
     orderBy: [desc(todos.createdAt)],
   })
@@ -17,6 +18,7 @@ const createTodo = createServerFn({
 })
   .inputValidator((data: { title: string }) => data)
   .handler(async ({ data }) => {
+    const db = getDb()
     await db.insert(todos).values({ title: data.title })
     return { success: true }
   })
@@ -148,35 +150,34 @@ function DemoDrizzle() {
             Powered by Drizzle ORM
           </h3>
           <p className="text-sm text-indigo-300/80 mb-4">
-            Next-generation ORM for Node.js & TypeScript with PostgreSQL
+            Drizzle ORM with Cloudflare D1 (SQLite)
           </p>
           <div className="space-y-2 text-sm">
             <p className="text-indigo-200 font-medium">Setup Instructions:</p>
             <ol className="list-decimal list-inside space-y-2 text-indigo-300/80">
               <li>
-                Configure your{' '}
-                <code className="px-2 py-1 rounded bg-black/30 text-purple-300">
-                  DATABASE_URL
-                </code>{' '}
-                in .env.local
+                Create a D1 database and set{' '}
+                <code className="px-2 py-1 rounded bg-black/30 text-purple-300">database_id</code>{' '}
+                in <code className="px-2 py-1 rounded bg-black/30 text-purple-300">wrangler.jsonc</code>
               </li>
               <li>
-                Run:{' '}
+                Apply migrations:{' '}
                 <code className="px-2 py-1 rounded bg-black/30 text-purple-300">
-                  bunx --bun drizzle-kit generate
+                  wrangler d1 migrations apply scribo-stock-db --local
                 </code>
               </li>
               <li>
-                Run:{' '}
+                Regenerate SQL after schema edits:{' '}
                 <code className="px-2 py-1 rounded bg-black/30 text-purple-300">
-                  bunx --bun drizzle-kit migrate
+                  bun run db:generate
                 </code>
               </li>
               <li>
                 Optional:{' '}
                 <code className="px-2 py-1 rounded bg-black/30 text-purple-300">
-                  bunx --bun drizzle-kit studio
-                </code>
+                  bun run cf-typegen
+                </code>{' '}
+                for binding types
               </li>
             </ol>
           </div>

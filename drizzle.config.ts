@@ -1,13 +1,8 @@
-import { config } from 'dotenv'
 import { defineConfig } from 'drizzle-kit'
 
-config({ path: ['.env.local', '.env'] })
-
+/** Used by `drizzle-kit generate` only. Apply migrations with `wrangler d1 migrations apply`. */
 export default defineConfig({
-  out: './drizzle',
   schema: './src/db/schema.ts',
-  dialect: 'postgresql',
-  dbCredentials: {
-    url: process.env.DATABASE_URL,
-  },
+  out: './drizzle/migrations',
+  dialect: 'sqlite',
 })

@@ -1,28 +1,8 @@
 import { openDB, type IDBPDatabase } from "idb";
 
-export interface StockRow {
-  id: string; // periodFrom|periodTo|storeCode|barcode
-  periodFrom: string;
-  periodTo: string;
-  storeCode: string;
-  storeName: string;
-  groupCode: string;
-  groupName: string;
-  divCode: string;
-  divName: string;
-  dptCode: string;
-  dptName: string;
-  lineCode: string;
-  lineName: string;
-  classCode: string;
-  className: string;
-  barcode: string;
-  productName: string;
-  productNameJa: string;
-  stockQty: number;
-  stockCost: number;
-  uploadedAt: number;
-}
+import type { StockRow } from "#/db/schema";
+
+export type { StockRow } from "#/db/schema";
 
 const DB_NAME = "stock-portal";
 const STORE = "rows";
@@ -106,7 +86,6 @@ export function mapCsvRow(r: Record<string, unknown>): StockRow | null {
     productName: str(pick(r, "商品名")),
     productNameJa: str(pick(r, "商品名(日本名)")),
     stockQty: num(pick(r, "庫存數量")),
-    stockCost: num(pick(r, "庫存成本價")),
     uploadedAt: Date.now(),
   };
 }
